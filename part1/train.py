@@ -40,10 +40,11 @@ def get_accuracy(predictions, targets):
     Computes the prediction accuracy, i.e. the average of correct predictions
     of the network.
     """
-    i_pred = predictions.argmax(axis=0)
-    i_target = targets.argmax(axis=1)
+    i_pred = predictions.max(dim=-1)[1]
+    i_target = targets.max(dim=-1)[1]
 
-    accuracy = (i_pred == i_target).mean()
+    correct = (i_pred == i_target).to(dtype = torch.float64)
+    accuracy = correct.mean()
 
     return accuracy
 
@@ -56,7 +57,7 @@ def train(config):
 
     # Initialize the model that we are going to use
     model = VanillaRNN(config.input_length, config.input_dim, config.num_hidden, config.num_classes, config.batch_size,
-                       config.device)
+                       device)
 
     # Initialize the dataset and data loader (note the +1)
     dataset = PalindromeDataset(config.input_length+1)
@@ -64,15 +65,14 @@ def train(config):
 
     # Setup the loss and optimizer
     criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.RMSprop(model.parameters())
+    optimizer = torch.optim.RMSprop(model.parameters(), lr=config.learning_rate)
 
-    model.train()
 
     for step, (batch_inputs, batch_targets) in enumerate(data_loader):
         t1 = time.time()
 
         batch_inputs, batch_targets = batch_inputs.to(device), batch_targets.to(device)
-        optimizer.zero_grad()
+
         predictions = model(batch_inputs)
 
         ############################################################################
@@ -81,9 +81,9 @@ def train(config):
         torch.nn.utils.clip_grad_norm(model.parameters(), max_norm=config.max_norm)
         ############################################################################
 
-
         loss = criterion(predictions, batch_targets)
         accuracy = get_accuracy(predictions, batch_targets)
+        optimizer.zero_grad()
 
         loss.backward()
         optimizer.step()
@@ -119,7 +119,7 @@ if __name__ == "__main__":
 
     # Model params
     parser.add_argument('--model_type', type=str, default="RNN", help="Model type, should be 'RNN' or 'LSTM'")
-    parser.add_argument('--input_length', type=int, default=10, help='Length of an input sequence')
+    parser.add_argument('--input_length', type=int, default=5, help='Length of an input sequence')
     parser.add_argument('--input_dim', type=int, default=1, help='Dimensionality of input sequence')
     parser.add_argument('--num_classes', type=int, default=10, help='Dimensionality of output sequence')
     parser.add_argument('--num_hidden', type=int, default=128, help='Number of hidden units in the model')
