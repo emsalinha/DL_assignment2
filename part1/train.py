@@ -56,8 +56,13 @@ def train(config):
     device = torch.device(config.device)
 
     # Initialize the model that we are going to use
-    model = VanillaRNN(config.input_length, config.input_dim, config.num_hidden, config.num_classes, config.batch_size,
-                       device)
+
+    if config.model_type == 'RNN':
+        model = VanillaRNN(config.input_length, config.input_dim, config.num_hidden, config.num_classes,
+                           config.batch_size, device)
+    elif config.model_type == 'LSTM':
+        model = LSTM(config.input_length, config.input_dim, config.num_hidden, config.num_classes,
+                     config.batch_size, device)
 
     # Initialize the dataset and data loader (note the +1)
     dataset = PalindromeDataset(config.input_length+1)
@@ -118,7 +123,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # Model params
-    parser.add_argument('--model_type', type=str, default="RNN", help="Model type, should be 'RNN' or 'LSTM'")
+    parser.add_argument('--model_type', type=str, default="LSTM", help="Model type, should be 'RNN' or 'LSTM'")
     parser.add_argument('--input_length', type=int, default=5, help='Length of an input sequence')
     parser.add_argument('--input_dim', type=int, default=1, help='Dimensionality of input sequence')
     parser.add_argument('--num_classes', type=int, default=10, help='Dimensionality of output sequence')

@@ -54,13 +54,13 @@ class VanillaRNN(nn.Module):
         self.W_ph = nn.Parameter(torch.randn(self.num_hidden, num_classes, device=self.device), requires_grad = True) #128x10
         self.bias_p = nn.Parameter(torch.zeros(num_classes, device=self.device), requires_grad = True) #10
 
-        self.h_zero = torch.zeros(num_hidden, device=self.device)
-
         self.activation = nn.Tanh()
 
     def forward(self, x):
+        self.h_zero = torch.zeros(self.num_hidden, self.batch_size, device=self.device)
         self.hs = [self.h_zero]
         self.ys = []
+        x = x.to(self.device)
 
         for i in range(0, self.seq_length):
             x_i = torch.reshape(x[:, i], shape=(1, self.num_hidden))
@@ -68,13 +68,15 @@ class VanillaRNN(nn.Module):
             hh = torch.matmul(self.hs[-1], self.W_hh) + self.bias_h
             h = self.activation(xh + hh)
             self.hs.append(h)
-            p = torch.matmul(h,self.W_ph) + self.bias_p
-            y = self.sigmoid(p)
-            self.ys.append(y)
 
+        p = torch.matmul(self.hs[-1],self.W_ph) + self.bias_p
+        y = self.softmax(p)
+        self.ys.append(y)
+
+        #print(len(self.ys))
         return self.ys[-1]
 
-    def sigmoid(self,x):
+    def softmax(self,x):
         b = x.max(dim=1)[0]
         x = torch.transpose(x, -1, 0)
         y = torch.exp(x - b)
@@ -83,3 +85,4 @@ class VanillaRNN(nn.Module):
         s = torch.transpose(s, -1, 0)
         # 128 * 10
         return s
+
