@@ -35,6 +35,18 @@ from part1.lstm import LSTM
 
 ################################################################################
 
+def get_accuracy(predictions, targets):
+    """
+    Computes the prediction accuracy, i.e. the average of correct predictions
+    of the network.
+    """
+    i_pred = predictions.argmax(axis=0)
+    i_target = targets.argmax(axis=1)
+
+    accuracy = (i_pred == i_target).mean()
+
+    return accuracy
+
 def train(config):
 
     assert config.model_type in ('RNN', 'LSTM')
@@ -43,22 +55,25 @@ def train(config):
     device = torch.device(config.device)
 
     # Initialize the model that we are going to use
-    model = None  # fixme
+    model = VanillaRNN(config.input_length, config.input_dim, config.num_hidden, config.num_classes, config.batch_size,
+                       config.device)
 
     # Initialize the dataset and data loader (note the +1)
     dataset = PalindromeDataset(config.input_length+1)
     data_loader = DataLoader(dataset, config.batch_size, num_workers=1)
 
     # Setup the loss and optimizer
-    criterion = None  # fixme
-    optimizer = None  # fixme
+    criterion = torch.nn.CrossEntropyLoss()
+    optimizer = torch.optim.RMSprop(model.parameters())
+
+    model.train()
 
     for step, (batch_inputs, batch_targets) in enumerate(data_loader):
-
-        # Only for time measurement of step through network
         t1 = time.time()
 
-        # Add more code here ...
+        batch_inputs, batch_targets = batch_inputs.to(device), batch_targets.to(device)
+        optimizer.zero_grad()
+        predictions = model(batch_inputs)
 
         ############################################################################
         # QUESTION: what happens here and why?
@@ -66,10 +81,12 @@ def train(config):
         torch.nn.utils.clip_grad_norm(model.parameters(), max_norm=config.max_norm)
         ############################################################################
 
-        # Add more code here ...
 
-        loss = np.inf   # fixme
-        accuracy = 0.0  # fixme
+        loss = criterion(predictions, batch_targets)
+        accuracy = get_accuracy(predictions, batch_targets)
+
+        loss.backward()
+        optimizer.step()
 
         # Just for time measurement
         t2 = time.time()
@@ -110,7 +127,7 @@ if __name__ == "__main__":
     parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate')
     parser.add_argument('--train_steps', type=int, default=10000, help='Number of training steps')
     parser.add_argument('--max_norm', type=float, default=10.0)
-    parser.add_argument('--device', type=str, default="cuda:0", help="Training device 'cpu' or 'cuda:0'")
+    parser.add_argument('--device', type=str, default="cpu", help="Training device 'cpu' or 'cuda:0'")
 
     config = parser.parse_args()
 
