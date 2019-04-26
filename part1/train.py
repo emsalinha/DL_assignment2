@@ -41,9 +41,9 @@ def get_accuracy(predictions, targets):
     of the network.
     """
     i_pred = predictions.max(dim=-1)[1]
-    i_target = targets.max(dim=-1)[1]
+    # i_target = targets.max(dim=-1)[1]
 
-    correct = (i_pred == i_target).to(dtype = torch.float64)
+    correct = (i_pred == targets).to(dtype = torch.float64)
     accuracy = correct.mean()
 
     return accuracy
@@ -60,9 +60,12 @@ def train(config):
     if config.model_type == 'RNN':
         model = VanillaRNN(config.input_length, config.input_dim, config.num_hidden, config.num_classes,
                            config.batch_size, device)
+        retain_graph = None
+
     elif config.model_type == 'LSTM':
         model = LSTM(config.input_length, config.input_dim, config.num_hidden, config.num_classes,
                      config.batch_size, device)
+        retain_graph = True
 
     # Initialize the dataset and data loader (note the +1)
     dataset = PalindromeDataset(config.input_length+1)
@@ -80,17 +83,20 @@ def train(config):
 
         predictions = model(batch_inputs)
 
+        loss = criterion(predictions, batch_targets)
+        accuracy = get_accuracy(predictions, batch_targets)
+        optimizer.zero_grad()
+
+
+        loss.backward()
+
         ############################################################################
         # QUESTION: what happens here and why?
         ############################################################################
         torch.nn.utils.clip_grad_norm(model.parameters(), max_norm=config.max_norm)
         ############################################################################
 
-        loss = criterion(predictions, batch_targets)
-        accuracy = get_accuracy(predictions, batch_targets)
-        optimizer.zero_grad()
 
-        loss.backward()
         optimizer.step()
 
         # Just for time measurement

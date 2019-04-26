@@ -57,8 +57,8 @@ class LSTM(nn.Module):
         self.W_ph = nn.Parameter(torch.randn(self.num_hidden, num_classes, device=self.device), requires_grad = True)
         self.bias_p = nn.Parameter(torch.zeros(num_classes, device=self.device), requires_grad = True)
 
-        self.h_zero = torch.zeros(self.batch_size, self.num_hidden, device=self.device)
-        self.c_zero = torch.zeros(self.batch_size, self.num_hidden, device=self.device)
+        self.h = torch.zeros(self.batch_size, self.num_hidden, device=self.device)
+        self.c = torch.zeros(self.batch_size, self.num_hidden, device=self.device)
 
         self.tanh = nn.Tanh()
         self.sig = nn.Sigmoid()
@@ -66,35 +66,20 @@ class LSTM(nn.Module):
 
     def forward(self, x):
         # Implementation here ...
-        self.hs = [self.h_zero]
-        self.cs = [self.c_zero]
-        self.ys = []
         x = x.to(self.device)
 
         for i in range(0, self.seq_length):
 
-            x_i = torch.reshape(x[:, i], shape=(1, self.num_hidden))
-            g = self.tanh(torch.matmul(self.W_gx, x_i) + torch.matmul(self.W_gh, self.hs[-1]) + self.bias_g)
-            i = self.sig(torch.matmul(self.W_ix, x_i) + torch.matmul(self.W_ih, self.hs[-1]) + self.bias_i)
-            f = self.sig(torch.matmul(self.W_fx, x_i) + torch.matmul(self.W_fh, self.hs[-1]) + self.bias_f)
-            o = self.sig(torch.matmul(self.W_ox, x_i) + torch.matmul(self.W_oh, self.hs[-1]) + self.bias_o)
+            x_i = x[:, i].view(-1,1)
+            g = self.tanh(torch.matmul(x_i, self.W_gx.t()) + torch.matmul(self.h, self.W_gh.t()) + self.bias_g)
+            i = self.sig(torch.matmul(x_i, self.W_ix.t())+ torch.matmul(self.h, self.W_ih.t()) + self.bias_i)
+            f = self.sig(torch.matmul(x_i, self.W_fx.t()) + torch.matmul(self.h, self.W_fh.t()) + self.bias_f)
+            o = self.sig(torch.matmul(x_i, self.W_ox.t()) + torch.matmul(self.h, self.W_oh.t()) + self.bias_o)
 
-            c = g * i + self.cs[-1] * f
-            h = self.tanh(c) * o
-            self.hs.append(h)
+            self.c = g * i + self.c * f
+            self.h = self.tanh(self.c) * o
 
-        p = torch.matmul(h, self.W_ph) + self.bias_p
-        y = self.softmax(p)
-        self.ys.append(y)
+        p = torch.matmul(self.h, self.W_ph) + self.bias_p
 
-        return self.ys[-1]
+        return p
 
-    def softmax(self,x):
-        b = x.max(dim=1)[0]
-        x = torch.transpose(x, -1, 0)
-        y = torch.exp(x - b)
-        y_sum = y.sum(dim=0)
-        s = y / y_sum
-        s = torch.transpose(s, -1, 0)
-        # 128 * 10
-        return s

@@ -21,7 +21,7 @@ from __future__ import print_function
 import torch
 import torch.nn as nn
 from collections import deque
-
+import numpy as np
 
 ################################################################################
 
@@ -34,6 +34,7 @@ class VanillaRNN(nn.Module):
         self.device = device
         self.seq_length = seq_length #10
         self.num_hidden = num_hidden
+        self.num_classes = num_classes
         # input_dim 1
         # num_hidden 128
         # num_classes 10
@@ -57,32 +58,22 @@ class VanillaRNN(nn.Module):
         self.activation = nn.Tanh()
 
     def forward(self, x):
-        self.h_zero = torch.zeros(self.num_hidden, self.batch_size, device=self.device)
-        self.hs = [self.h_zero]
-        self.ys = []
+
         x = x.to(self.device)
 
+        self.h = torch.zeros(self.num_hidden, self.batch_size, device=self.device)
+
         for i in range(0, self.seq_length):
-            x_i = torch.reshape(x[:, i], shape=(1, self.num_hidden))
-            xh = torch.matmul(self.W_hx, x_i)
-            hh = torch.matmul(self.hs[-1], self.W_hh) + self.bias_h
-            h = self.activation(xh + hh)
-            self.hs.append(h)
+            #print(i)
+            x_i = x[:, i].view(-1,1)
+            #x_i = self.make_one_hot(x_i).t()
 
-        p = torch.matmul(self.hs[-1],self.W_ph) + self.bias_p
-        y = self.softmax(p)
-        self.ys.append(y)
+            xh = torch.mm(x_i, self.W_hx.t())
+            hh = torch.mm(self.W_hh, self.h).t() + self.bias_h
+            self.h = self.activation(xh + hh)
+            self.h = self.h.t()
 
-        #print(len(self.ys))
-        return self.ys[-1]
+        p = torch.mm(self.h.t(), self.W_ph) + self.bias_p
 
-    def softmax(self,x):
-        b = x.max(dim=1)[0]
-        x = torch.transpose(x, -1, 0)
-        y = torch.exp(x - b)
-        y_sum = y.sum(dim=0)
-        s = y / y_sum
-        s = torch.transpose(s, -1, 0)
-        # 128 * 10
-        return s
+        return p
 
