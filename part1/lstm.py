@@ -57,14 +57,15 @@ class LSTM(nn.Module):
         self.W_ph = nn.Parameter(torch.randn(self.num_hidden, num_classes, device=self.device), requires_grad = True)
         self.bias_p = nn.Parameter(torch.zeros(num_classes, device=self.device), requires_grad = True)
 
-        self.h = torch.zeros(self.batch_size, self.num_hidden, device=self.device)
-        self.c = torch.zeros(self.batch_size, self.num_hidden, device=self.device)
-
         self.tanh = nn.Tanh()
         self.sig = nn.Sigmoid()
 
 
     def forward(self, x):
+
+        self.h = torch.zeros(self.batch_size, self.num_hidden, device=self.device)
+        self.c = torch.zeros(self.batch_size, self.num_hidden, device=self.device)
+
         # Implementation here ...
         x = x.to(self.device)
 
