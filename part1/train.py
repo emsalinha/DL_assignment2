@@ -21,7 +21,9 @@ from __future__ import print_function
 import argparse
 import time
 from datetime import datetime
+import csv
 import numpy as np
+import pandas as pd
 
 import torch
 from torch.utils.data import DataLoader
@@ -29,6 +31,7 @@ from torch.utils.data import DataLoader
 from part1.dataset import PalindromeDataset
 from part1.vanilla_rnn import VanillaRNN
 from part1.lstm import LSTM
+from part1.plot_Q13 import open_results
 
 # You may want to look into tensorboardX for logging
 # from tensorboardX import SummaryWriter
@@ -74,7 +77,8 @@ def train(config):
     # Setup the loss and optimizer
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.RMSprop(model.parameters(), lr=config.learning_rate)
-
+    accuracies = []
+    losses = []
 
     for step, (batch_inputs, batch_targets) in enumerate(data_loader):
         t1 = time.time()
@@ -85,6 +89,10 @@ def train(config):
 
         loss = criterion(predictions, batch_targets)
         accuracy = get_accuracy(predictions, batch_targets)
+
+        losses.append(loss.item())
+        accuracies.append(accuracy.item())
+
         optimizer.zero_grad()
 
 
@@ -117,6 +125,12 @@ def train(config):
             # https://github.com/pytorch/pytorch/pull/9655
             break
 
+        if loss < 0.1:
+            break
+
+
+    return accuracies, losses
+
     print('Done training.')
 
 
@@ -125,22 +139,39 @@ def train(config):
 
 if __name__ == "__main__":
 
-    # Parse training configuration
-    parser = argparse.ArgumentParser()
+    accuracies = []
+    losses = []
+    model = 'RNN'
+    T = [9]
 
-    # Model params
-    parser.add_argument('--model_type', type=str, default="LSTM", help="Model type, should be 'RNN' or 'LSTM'")
-    parser.add_argument('--input_length', type=int, default=5, help='Length of an input sequence')
-    parser.add_argument('--input_dim', type=int, default=1, help='Dimensionality of input sequence')
-    parser.add_argument('--num_classes', type=int, default=10, help='Dimensionality of output sequence')
-    parser.add_argument('--num_hidden', type=int, default=128, help='Number of hidden units in the model')
-    parser.add_argument('--batch_size', type=int, default=128, help='Number of examples to process in a batch')
-    parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate')
-    parser.add_argument('--train_steps', type=int, default=10000, help='Number of training steps')
-    parser.add_argument('--max_norm', type=float, default=10.0)
-    parser.add_argument('--device', type=str, default="cpu", help="Training device 'cpu' or 'cuda:0'")
+    results, headers, accuracies, n_epochs = open_results(model)
+    #results = {}
 
-    config = parser.parse_args()
+    for t in T:
+        # Parse training configuration
+        parser = argparse.ArgumentParser()
 
-    # Train the model
-    train(config)
+        # Model params
+        parser.add_argument('--model_type', type=str, default=model, help="Model type, should be 'RNN' or 'LSTM'")
+        parser.add_argument('--input_length', type=int, default=t, help='Length of an input sequence')
+        parser.add_argument('--input_dim', type=int, default=1, help='Dimensionality of input sequence')
+        parser.add_argument('--num_classes', type=int, default=10, help='Dimensionality of output sequence')
+        parser.add_argument('--num_hidden', type=int, default=128, help='Number of hidden units in the model')
+        parser.add_argument('--batch_size', type=int, default=128, help='Number of examples to process in a batch')
+        parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate')
+        parser.add_argument('--train_steps', type=int, default=10000, help='Number of training steps')
+        parser.add_argument('--max_norm', type=float, default=10.0)
+        parser.add_argument('--device', type=str, default="cpu", help="Training device 'cpu' or 'cuda:0'")
+
+        config = parser.parse_args()
+
+        # Train the model
+
+        accuracies, losses = train(config)
+
+        results['loss {}'.format(t)] = losses
+        results['accuracy {}'.format(t)] = accuracies
+
+    with open('results_{}.csv'.format(model), 'w') as f:
+        for key in results.keys():
+            f.write("%s,%s\n" % (key, results[key]))
