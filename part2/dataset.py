@@ -20,11 +20,12 @@ from __future__ import print_function
 import os
 import numpy as np
 import torch.utils.data as data
+import math
 
 
 class TextDataset(data.Dataset):
 
-    def __init__(self, filename, seq_length):
+    def __init__(self, filename, seq_length, train_steps, batch_size):
         assert os.path.splitext(filename)[1] == ".txt"
         self._seq_length = seq_length
         self._data = open(filename, 'r').read()
@@ -35,6 +36,7 @@ class TextDataset(data.Dataset):
         self._char_to_ix = { ch:i for i,ch in enumerate(self._chars) }
         self._ix_to_char = { i:ch for i,ch in enumerate(self._chars) }
         self._offset = 0
+        self._data_len = int(train_steps*batch_size)
 
     def __getitem__(self, item):
         offset = np.random.randint(0, len(self._data)-self._seq_length-2)
@@ -46,7 +48,7 @@ class TextDataset(data.Dataset):
         return ''.join(self._ix_to_char[ix] for ix in char_ix)
 
     def __len__(self):
-        return self._data_size
+        return self._data_len
 
     @property
     def vocab_size(self):
