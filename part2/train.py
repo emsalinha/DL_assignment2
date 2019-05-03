@@ -138,11 +138,12 @@ def train(config):
                     datetime.now().strftime("%Y-%m-%d %H:%M"), step,
                     config.train_steps, config.batch_size, examples_per_second,
                     accuracy, loss)
-            print(report)
+
 
         if step % config.sample_every == 0:
             # Generate some sentences by sampling from the model
             sentence = generate_sentence(dataset, model, config)
+            print(report)
             print(sentence)
             if config.save:
                 file.write(report)
@@ -192,7 +193,7 @@ if __name__ == "__main__":
     # Misc params
     parser.add_argument('--summary_path', type=str, default="./summaries/", help='Output path for summaries')
     parser.add_argument('--print_every', type=int, default=5, help='How often to print training progress')
-    parser.add_argument('--sample_every', type=int, default=1, help='How often to sample from the model')
+    parser.add_argument('--sample_every', type=int, default=100, help='How often to sample from the model')
 
     parser.add_argument('--device', type=str, default="cuda:0", help="Training device 'cpu' or 'cuda:0'")
     parser.add_argument('--temp', type=float, default=1, help="temperature")
