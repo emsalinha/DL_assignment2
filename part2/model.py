@@ -52,7 +52,7 @@ class TextGenerationModel(nn.Module):
             self.h = torch.zeros(self.num_layers, 1, self.num_hidden).to(device=self.device)
             self.c = torch.zeros(self.num_layers, 1, self.num_hidden).to(device=self.device)
 
-        output, (self.h, self.c) = self.LSTM(x, (self.h, self.c))
+        output.to(device=self.device), (self.h.to(device=self.device), self.c.to(device=self.device)) = self.LSTM(x, (self.h, self.c))
 
         pred = self.classifier(output)
         pred = pred.view(-1, self.vocabulary_size)

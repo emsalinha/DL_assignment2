@@ -53,7 +53,7 @@ def generate_sentence(dataset, model, config):
 
     for i in range(0, config.seq_length):
 
-        prediction = model(char_tensor, batch = False)
+        prediction = model(char_tensor, batch = False).to(device=config.device)
 
         if config.greedy:
             prediction = softmax(prediction)
@@ -69,7 +69,7 @@ def generate_sentence(dataset, model, config):
         # sentence = dataset.convert_to_string(char_idxs)
         # print(sentence)
 
-        char_tensor = torch.tensor(char_idxs).view(len(char_idxs), 1, 1).float()
+        char_tensor = torch.tensor(char_idxs).view(len(char_idxs), 1, 1).float().to(device=config.device)
 
     sentence = dataset.convert_to_string(char_idxs)
     return sentence
@@ -115,7 +115,7 @@ def train(config):
         batch_targets = torch.stack(batch_targets)
         batch_targets = batch_targets.view(-1)
 
-        batch_inputs, batch_targets = batch_inputs.to(device=self.device), batch_targets.to(device=self.device)
+        batch_inputs, batch_targets = batch_inputs.to(device=config.device), batch_targets.to(device=config.device)
 
         predictions = model(batch_inputs)
 
