@@ -102,13 +102,12 @@ def train(config):
     scheduler = optim.lr_scheduler.StepLR(optimizer=optimizer, step_size=config.learning_rate_step,
                                    gamma=config.learning_rate_decay)
 
-    if config.save:
-        file = open(config.output_dir + 'sentences_{}_{}.txt'.format(str(config.greedy), config.temp), 'w')
+    file = open(config.output_dir + 'sentences_{}_{}.txt'.format(str(config.greedy), config.temp), 'w')
 
-    epoch = -1
-    while epoch < config.train_steps:
+    true_step = -1
+    while true_step < config.train_steps:
         for step, (batch_inputs, batch_targets) in enumerate(data_loader):
-            epoch += 1
+            true_step += 1
             # Only for time measurement of step through network
             t1 = time.time()
             optimizer.zero_grad()
@@ -147,9 +146,8 @@ def train(config):
                 sentence = generate_sentence(dataset, model, config)
                 print(report)
                 print(sentence)
-                if config.save:
-                    file.write(report)
-                    file.write(sentence)
+                file.write(report)
+                file.write(sentence)
 
                 torch.save(model, config.output_dir + 'model_{}_{}'.format(str(config.greedy), config.temp))
 
@@ -159,8 +157,7 @@ def train(config):
             #     # https://github.com/pytorch/pytorch/pull/9655
             #     break
 
-        if config.save:
-            file.close()
+        file.close()
 
         print('Done training.')
 
@@ -197,14 +194,13 @@ if __name__ == "__main__":
     parser.add_argument('--print_every', type=int, default=5, help='How often to print training progress')
     parser.add_argument('--sample_every', type=int, default=10, help='How often to sample from the model')
 
-    parser.add_argument('--device', type=str, default="cpu", help="Training device 'cpu' or 'cuda:0'")
+    parser.add_argument('--device', type=str, default="cuda:0", help="Training device 'cpu' or 'cuda:0'")
     parser.add_argument('--temp', type=float, default=1, help="temperature")
-    parser.add_argument('--greedy', type=bool, default=False, help="greedy vs random sampling")
-    parser.add_argument('--save', type=bool, default=True, help="save sentences")
+    parser.add_argument('--greedy', type=bool, default=True, help="greedy vs random sampling")
     parser.add_argument('--load', type=bool, default=False, help="load pretrained model")
 
     parser.add_argument('--optim', type=str, default='Adam', help="RMS vs Adam")
-    parser.add_argument('--input_dir', type=str, default=os.getenv("HOME"), help="")
+    parser.add_argument('--input_dir', type=str, default=os.getenv("HOME" + '/'), help="")
     #parser.add_argument('--input_dir', type=str, default='assets/', help="")
     parser.add_argument('--output_dir', type=str, default=(os.getenv("HOME") + '/'), help="")
 
