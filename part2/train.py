@@ -79,9 +79,9 @@ def train(config):
     # Initialize the device which to run the model on
     device = torch.device(config.device)
 
-
+    file_loc = config.input_dir + config.txt_file
     # Initialize the dataset and data loader
-    dataset = TextDataset(config.txt_file, config.seq_length, config.train_steps, config.batch_size)
+    dataset = TextDataset(file_loc, config.seq_length, config.train_steps, config.batch_size)
     data_loader = DataLoader(dataset, config.batch_size, num_workers=1)
 
     # Initialize the model that we are going to use
@@ -105,62 +105,66 @@ def train(config):
     if config.save:
         file = open(config.output_dir + 'sentences_{}_{}.txt'.format(str(config.greedy), config.temp), 'w')
 
-    for step, (batch_inputs, batch_targets) in enumerate(data_loader):
+    epoch = 0
+    while epoch < config.train_steps:
+        for step, (batch_inputs, batch_targets) in enumerate(data_loader):
 
-        # Only for time measurement of step through network
-        t1 = time.time()
-        optimizer.zero_grad()
+            # Only for time measurement of step through network
+            t1 = time.time()
+            optimizer.zero_grad()
 
-        batch_inputs = torch.unsqueeze(torch.stack(batch_inputs), 2).float()
-        batch_targets = torch.stack(batch_targets)
-        batch_targets = batch_targets.view(-1)
+            batch_inputs = torch.unsqueeze(torch.stack(batch_inputs), 2).float()
+            batch_targets = torch.stack(batch_targets)
+            batch_targets = batch_targets.view(-1)
 
-        batch_inputs, batch_targets = batch_inputs.to(device=config.device), batch_targets.to(device=config.device)
+            batch_inputs, batch_targets = batch_inputs.to(device=config.device), batch_targets.to(device=config.device)
 
-        predictions = model(batch_inputs)
+            predictions = model(batch_inputs)
 
-        loss = criterion(predictions, batch_targets)
-        accuracy = get_accuracy(predictions, batch_targets)
-
-
-        loss.backward()
-        optimizer.step()
-        scheduler.step()
-
-        # Just for time measurement
-        t2 = time.time()
-        examples_per_second = config.batch_size/float(t2-t1)
-
-        if step % config.print_every == 0:
-
-            report = "[{}] Train Step {}/{}, Batch Size = {}, Examples/Sec = {}, " \
-                     "Accuracy = {}, Loss = {}".format(
-                    datetime.now().strftime("%Y-%m-%d %H:%M"), step,
-                    config.train_steps, config.batch_size, examples_per_second,
-                    accuracy, loss)
+            loss = criterion(predictions, batch_targets)
+            accuracy = get_accuracy(predictions, batch_targets)
 
 
-        if step % config.sample_every == 0:
-            # Generate some sentences by sampling from the model
-            sentence = generate_sentence(dataset, model, config)
-            print(report)
-            print(sentence)
-            if config.save:
-                file.write(report)
-                file.write(sentence)
+            loss.backward()
+            optimizer.step()
+            scheduler.step()
 
-            torch.save(model, config.output_dir + 'model_{}_{}'.format(str(config.greedy), config.temp))
+            epoch += 1
+
+            # Just for time measurement
+            t2 = time.time()
+            examples_per_second = config.batch_size/float(t2-t1)
+
+            if step % config.print_every == 0:
+
+                report = "[{}] Train Step {}/{}, Batch Size = {}, Examples/Sec = {}, " \
+                         "Accuracy = {}, Loss = {}".format(
+                        datetime.now().strftime("%Y-%m-%d %H:%M"), step,
+                        config.train_steps, config.batch_size, examples_per_second,
+                        accuracy, loss)
 
 
-        if step == config.train_steps or loss < config.conv_criterion:
-            # If you receive a PyTorch data-loader error, check this bug report:
-            # https://github.com/pytorch/pytorch/pull/9655
-            break
+            if step % config.sample_every == 0:
+                # Generate some sentences by sampling from the model
+                sentence = generate_sentence(dataset, model, config)
+                print(report)
+                print(sentence)
+                if config.save:
+                    file.write(report)
+                    file.write(sentence)
 
-    if config.save:
-        file.close()
+                torch.save(model, config.output_dir + 'model_{}_{}'.format(str(config.greedy), config.temp))
 
-    print('Done training.')
+
+            if step == config.train_steps or loss < config.conv_criterion:
+                # If you receive a PyTorch data-loader error, check this bug report:
+                # https://github.com/pytorch/pytorch/pull/9655
+                break
+
+        if config.save:
+            file.close()
+
+        print('Done training.')
 
 
  ################################################################################
@@ -172,7 +176,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # Model params
-    parser.add_argument('--txt_file', type=str, default=(os.getenv("HOME")+'/DL_assignment2/part2/assets/book_EN_grimms_fairy_tails.txt'), help="Path to a .txt file to train on")
+    parser.add_argument('--txt_file', type=str, default='book_EN_grimms_fairy_tails.txt', help="Path to a .txt file to train on")
     parser.add_argument('--seq_length', type=int, default=30, help='Length of an input sequence')
     parser.add_argument('--lstm_num_hidden', type=int, default=128, help='Number of hidden units in the LSTM')
     parser.add_argument('--lstm_num_layers', type=int, default=2, help='Number of LSTM layers in the model')
@@ -202,7 +206,7 @@ if __name__ == "__main__":
     parser.add_argument('--load', type=bool, default=False, help="load pretrained model")
 
     parser.add_argument('--optim', type=str, default='Adam', help="RMS vs Adam")
-    parser.add_argument('--input_dir', type=str, default=None, help="")
+    parser.add_argument('--input_dir', type=str, default=(os.getenv("HOME")+'/DL_assignment2/part2/assets/'), help="")
     parser.add_argument('--output_dir', type=str, default=(os.getenv("HOME")+'/'), help="")
 
     config = parser.parse_args()
