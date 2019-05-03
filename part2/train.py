@@ -86,7 +86,7 @@ def train(config):
 
     # Initialize the model that we are going to use
     model = TextGenerationModel(config.batch_size, config.seq_length, dataset.vocab_size,
-             config.lstm_num_hidden, config.lstm_num_layers, config.device)
+             config.lstm_num_hidden, config.lstm_num_layers, config.device).to(device=config.device)
 
     if config.load:
         model.load_state_dict(torch.load('model_{}_{}.pt'.format(str(config.greedy), config.temp)))
@@ -115,7 +115,7 @@ def train(config):
         batch_targets = torch.stack(batch_targets)
         batch_targets = batch_targets.view(-1)
 
-        batch_inputs, batch_targets = batch_inputs.to(device), batch_targets.to(device)
+        batch_inputs, batch_targets = batch_inputs.to(device=self.device), batch_targets.to(device=self.device)
 
         predictions = model(batch_inputs)
 
@@ -202,7 +202,7 @@ if __name__ == "__main__":
 
     parser.add_argument('--optim', type=str, default='Adam', help="RMS vs Adam")
     parser.add_argument('--input_dir', type=str, default=None, help="")
-    parser.add_argument('--output_dir', type=str, default=os.getenv("HOME"), help="")
+    parser.add_argument('--output_dir', type=str, default=(os.getenv("HOME")+'/'), help="")
 
     config = parser.parse_args()
 

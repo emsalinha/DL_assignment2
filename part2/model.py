@@ -46,11 +46,11 @@ class TextGenerationModel(nn.Module):
         # Implementation here...
         # input and output size  (batch, seq, feature)
         if batch:
-            self.h = torch.zeros(self.num_layers, self.batch_size, self.num_hidden, device=self.device)
-            self.c = torch.zeros(self.num_layers, self.batch_size, self.num_hidden, device=self.device)
+            self.h = torch.zeros(self.num_layers, self.batch_size, self.num_hidden).to(device=self.device)
+            self.c = torch.zeros(self.num_layers, self.batch_size, self.num_hidden).to(device=self.device)
         else:
-            self.h = torch.zeros(self.num_layers, 1, self.num_hidden, device=self.device)
-            self.c = torch.zeros(self.num_layers, 1, self.num_hidden, device=self.device)
+            self.h = torch.zeros(self.num_layers, 1, self.num_hidden).to(device=self.device)
+            self.c = torch.zeros(self.num_layers, 1, self.num_hidden).to(device=self.device)
 
         output, (self.h, self.c) = self.LSTM(x, (self.h, self.c))
 
