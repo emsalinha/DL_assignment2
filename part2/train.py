@@ -22,12 +22,13 @@ from datetime import datetime
 import argparse
 import random
 
+import os
 import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
-from part2.dataset import TextDataset
-from part2.model import TextGenerationModel
+from dataset import TextDataset
+from model import TextGenerationModel
 
 ################################################################################
 def get_accuracy(predictions, batch_targets):
@@ -74,9 +75,10 @@ def generate_sentence(dataset, model, config):
     return sentence
 
 def train(config):
-
+    
     # Initialize the device which to run the model on
     device = torch.device(config.device)
+
 
     # Initialize the dataset and data loader
     dataset = TextDataset(config.txt_file, config.seq_length, config.train_steps, config.batch_size)
@@ -97,11 +99,11 @@ def train(config):
     elif config.optim == 'RMS':
         optimizer = torch.optim.RMSprop(model.parameters(), lr=config.learning_rate)
 
-    scheduler = optim.lr_scheduler(optimizer=optimizer, step_size=config.learning_rate_step,
+    scheduler = optim.lr_scheduler.StepLR(optimizer=optimizer, step_size=config.learning_rate_step,
                                    gamma=config.learning_rate_decay)
 
     if config.save:
-        file = open('sentences_{}_{}.txt'.format(str(config.greedy), config.temp), 'w')
+        file = open(config.output_dir + 'sentences_{}_{}.txt'.format(str(config.greedy), config.temp), 'w')
 
     for step, (batch_inputs, batch_targets) in enumerate(data_loader):
 
@@ -146,7 +148,7 @@ def train(config):
                 file.write(report)
                 file.write(sentence)
 
-            torch.save(model, 'model_{}_{}'.format(str(config.greedy), config.temp))
+            torch.save(model, config.output_dir + 'model_{}_{}'.format(str(config.greedy), config.temp))
 
 
         if step == config.train_steps or loss < config.conv_criterion:
@@ -169,7 +171,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # Model params
-    parser.add_argument('--txt_file', type=str, default='assets/book_EN_grimms_fairy_tails.txt', help="Path to a .txt file to train on")
+    parser.add_argument('--txt_file', type=str, default=(os.getenv("HOME")+'/DL_assignment2/part2/assets/book_EN_grimms_fairy_tails.txt'), help="Path to a .txt file to train on")
     parser.add_argument('--seq_length', type=int, default=30, help='Length of an input sequence')
     parser.add_argument('--lstm_num_hidden', type=int, default=128, help='Number of hidden units in the LSTM')
     parser.add_argument('--lstm_num_layers', type=int, default=2, help='Number of LSTM layers in the model')
@@ -190,15 +192,17 @@ if __name__ == "__main__":
     # Misc params
     parser.add_argument('--summary_path', type=str, default="./summaries/", help='Output path for summaries')
     parser.add_argument('--print_every', type=int, default=5, help='How often to print training progress')
-    parser.add_argument('--sample_every', type=int, default=100, help='How often to sample from the model')
+    parser.add_argument('--sample_every', type=int, default=1, help='How often to sample from the model')
 
     parser.add_argument('--device', type=str, default="cuda:0", help="Training device 'cpu' or 'cuda:0'")
     parser.add_argument('--temp', type=float, default=1, help="temperature")
-    parser.add_argument('--greedy', type=bool, default=True, help="greedy vs random sampling")
+    parser.add_argument('--greedy', type=bool, default=False, help="greedy vs random sampling")
     parser.add_argument('--save', type=bool, default=True, help="save sentences")
-    parser.add_argument('--load', type=bool, default=True, help="load pretrained model")
+    parser.add_argument('--load', type=bool, default=False, help="load pretrained model")
 
     parser.add_argument('--optim', type=str, default='Adam', help="RMS vs Adam")
+    parser.add_argument('--input_dir', type=str, default=None, help="")
+    parser.add_argument('--output_dir', type=str, default=os.getenv("HOME"), help="")
 
     config = parser.parse_args()
 
