@@ -195,17 +195,17 @@ if __name__ == "__main__":
     # Misc params
     parser.add_argument('--summary_path', type=str, default="./summaries/", help='Output path for summaries')
     parser.add_argument('--print_every', type=int, default=5, help='How often to print training progress')
-    parser.add_argument('--sample_every', type=int, default=100, help='How often to sample from the model')
+    parser.add_argument('--sample_every', type=int, default=10, help='How often to sample from the model')
 
-    parser.add_argument('--device', type=str, default="cuda:0", help="Training device 'cpu' or 'cuda:0'")
+    parser.add_argument('--device', type=str, default="cpu", help="Training device 'cpu' or 'cuda:0'")
     parser.add_argument('--temp', type=float, default=1, help="temperature")
     parser.add_argument('--greedy', type=bool, default=False, help="greedy vs random sampling")
     parser.add_argument('--save', type=bool, default=True, help="save sentences")
     parser.add_argument('--load', type=bool, default=False, help="load pretrained model")
 
     parser.add_argument('--optim', type=str, default='Adam', help="RMS vs Adam")
-    parser.add_argument('--input_dir', type=str, default=(os.getenv("HOME") + '/DL_assignment2/part2/assets/'), help="")
-    parser.add_argument('--input_dir', type=str, default='assets/', help="")
+    parser.add_argument('--input_dir', type=str, default=os.getenv("HOME"), help="")
+    #parser.add_argument('--input_dir', type=str, default='assets/', help="")
     parser.add_argument('--output_dir', type=str, default=(os.getenv("HOME") + '/'), help="")
 
     config = parser.parse_args()
