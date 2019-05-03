@@ -105,10 +105,10 @@ def train(config):
     if config.save:
         file = open(config.output_dir + 'sentences_{}_{}.txt'.format(str(config.greedy), config.temp), 'w')
 
-    epoch = 0
+    epoch = -1
     while epoch < config.train_steps:
         for step, (batch_inputs, batch_targets) in enumerate(data_loader):
-
+            epoch += 1
             # Only for time measurement of step through network
             t1 = time.time()
             optimizer.zero_grad()
@@ -128,8 +128,6 @@ def train(config):
             loss.backward()
             optimizer.step()
             scheduler.step()
-
-            epoch += 1
 
             # Just for time measurement
             t2 = time.time()
@@ -155,11 +153,11 @@ def train(config):
 
                 torch.save(model, config.output_dir + 'model_{}_{}'.format(str(config.greedy), config.temp))
 
-
-            if step == config.train_steps or loss < config.conv_criterion:
-                # If you receive a PyTorch data-loader error, check this bug report:
-                # https://github.com/pytorch/pytorch/pull/9655
-                break
+            #
+            # if step == config.train_steps:
+            #     # If you receive a PyTorch data-loader error, check this bug report:
+            #     # https://github.com/pytorch/pytorch/pull/9655
+            #     break
 
         if config.save:
             file.close()
@@ -206,8 +204,9 @@ if __name__ == "__main__":
     parser.add_argument('--load', type=bool, default=False, help="load pretrained model")
 
     parser.add_argument('--optim', type=str, default='Adam', help="RMS vs Adam")
-    parser.add_argument('--input_dir', type=str, default=(os.getenv("HOME")+'/DL_assignment2/part2/assets/'), help="")
-    parser.add_argument('--output_dir', type=str, default=(os.getenv("HOME")+'/'), help="")
+    parser.add_argument('--input_dir', type=str, default=(os.getenv("HOME") + '/DL_assignment2/part2/assets/'), help="")
+    parser.add_argument('--input_dir', type=str, default='assets/', help="")
+    parser.add_argument('--output_dir', type=str, default=(os.getenv("HOME") + '/'), help="")
 
     config = parser.parse_args()
 
