@@ -45,6 +45,8 @@ class TextGenerationModel(nn.Module):
     def forward(self, x, batch = True):
         # Implementation here...
         # input and output size  (batch, seq, feature)
+        x = x.to(device=self.device)
+        
         if batch:
             self.h = torch.zeros(self.num_layers, self.batch_size, self.num_hidden).to(device=self.device)
             self.c = torch.zeros(self.num_layers, self.batch_size, self.num_hidden).to(device=self.device)
