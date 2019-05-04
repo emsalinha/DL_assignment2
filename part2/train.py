@@ -21,13 +21,13 @@ import time
 from datetime import datetime
 import argparse
 import random
-
+import os
 import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
-from part2.dataset import TextDataset
-from part2.model import TextGenerationModel
+from dataset import TextDataset
+from model import TextGenerationModel
 
 ################################################################################
 def get_accuracy(predictions, batch_targets):
@@ -46,20 +46,18 @@ def generate_sentence(dataset, model, config):
 
     char_idx = random.randint(0, dataset.vocab_size-1)
     char_idxs = [char_idx]
-    char_tensor = torch.tensor(char_idx).view(1, 1, 1).float()
-
-    softmax = torch.nn.Softmax()
+    char_tensor = torch.tensor(char_idx).view(1, 1, 1).float().to(config.device)
 
     for i in range(0, config.seq_length):
 
-        prediction = model(char_tensor, batch = False)
+        prediction = model(char_tensor, batch = False).to(config.device)
 
         if config.greedy:
-            prediction = softmax(prediction)
+            prediction = torch.softmax(prediction, dim=0)
             i_preds = prediction.max(dim=-1)[1]
             i_pred = i_preds[-1].item()
         else:
-            prediction = softmax(prediction * config.temp)
+            prediction = torch.softmax(prediction * config.temp, dim=0)
             i_preds = torch.multinomial(prediction,1)
             i_pred = i_preds[-1].item()
 
@@ -68,7 +66,7 @@ def generate_sentence(dataset, model, config):
         # sentence = dataset.convert_to_string(char_idxs)
         # print(sentence)
 
-        char_tensor = torch.tensor(char_idxs).view(len(char_idxs), 1, 1).float()
+        char_tensor = torch.tensor(char_idxs).view(len(char_idxs), 1, 1).float().to(config.device)
 
     sentence = dataset.convert_to_string(char_idxs)
     return sentence
@@ -85,9 +83,10 @@ def train(config):
     # Initialize the model that we are going to use
     model = TextGenerationModel(config.batch_size, config.seq_length, dataset.vocab_size,
              config.lstm_num_hidden, config.lstm_num_layers, config.device)
+    model = model.to(device)
 
     if config.load:
-        model = torch.load('model_{}_{}.pt'.format(str(config.greedy), config.temp))
+        model = torch.load('model_{}_{}.pt'.format(str(config.greedy), config.temp)).to(device)
 
     # Setup the loss and optimizer
     criterion = torch.nn.CrossEntropyLoss()
@@ -104,6 +103,7 @@ def train(config):
     if config.save:
         file = open('sentences_{}_{}.txt'.format(str(config.greedy), config.temp), 'w')
 
+    
     for step, (batch_inputs, batch_targets) in enumerate(data_loader):
 
         # Only for time measurement of step through network
@@ -170,7 +170,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # Model params
-    parser.add_argument('--txt_file', type=str, default='assets/book_EN_grimms_fairy_tails.txt', help="Path to a .txt file to train on")
+    parser.add_argument('--txt_file', type=str, default=os.getenv("HOME") + '/book_EN_grimms_fairy_tails.txt', help="Path to a .txt file to train on")
     parser.add_argument('--seq_length', type=int, default=30, help='Length of an input sequence')
     parser.add_argument('--lstm_num_hidden', type=int, default=128, help='Number of hidden units in the LSTM')
     parser.add_argument('--lstm_num_layers', type=int, default=2, help='Number of LSTM layers in the model')

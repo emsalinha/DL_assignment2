@@ -45,6 +45,8 @@ class TextGenerationModel(nn.Module):
     def forward(self, x, batch = True):
         # Implementation here...
         # input and output size  (batch, seq, feature)
+        x = x.to(device=self.device)
+
         if batch:
             self.h = torch.zeros(self.num_layers, self.batch_size, self.num_hidden, device=self.device)
             self.c = torch.zeros(self.num_layers, self.batch_size, self.num_hidden, device=self.device)
@@ -53,6 +55,9 @@ class TextGenerationModel(nn.Module):
             self.c = torch.zeros(self.num_layers, 1, self.num_hidden, device=self.device)
 
         output, (self.h, self.c) = self.LSTM(x, (self.h, self.c))
+        output = output.to(device=self.device)
+        self.h = self.h.to(device=self.device)
+        self.c = self.c.to(device=self.device)
 
         pred = self.classifier(output)
         pred = pred.view(-1, self.vocabulary_size)
