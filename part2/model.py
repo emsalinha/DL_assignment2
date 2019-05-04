@@ -18,6 +18,7 @@ from __future__ import division
 from __future__ import print_function
 
 import torch.nn as nn
+import torch
 
 
 class TextGenerationModel(nn.Module):
@@ -28,6 +29,33 @@ class TextGenerationModel(nn.Module):
         super(TextGenerationModel, self).__init__()
         # Initialization here...
 
-    def forward(self, x):
+        self.batch_size = batch_size
+        self.device = device
+        self.seq_length = seq_length #30
+        self.num_hidden = lstm_num_hidden
+        self.num_layers = lstm_num_layers
+        self.vocabulary_size = vocabulary_size
+
+        self.LSTM = nn.LSTM(input_size=1, hidden_size=self.num_hidden,
+                            num_layers=self.num_layers, batch_first=False)
+
+        self.classifier = nn.Linear(self.num_hidden, self.vocabulary_size)
+
+
+    def forward(self, x, batch = True):
         # Implementation here...
-        pass
+        # input and output size  (batch, seq, feature)
+        if batch:
+            self.h = torch.zeros(self.num_layers, self.batch_size, self.num_hidden, device=self.device)
+            self.c = torch.zeros(self.num_layers, self.batch_size, self.num_hidden, device=self.device)
+        else:
+            self.h = torch.zeros(self.num_layers, 1, self.num_hidden, device=self.device)
+            self.c = torch.zeros(self.num_layers, 1, self.num_hidden, device=self.device)
+
+        output, (self.h, self.c) = self.LSTM(x, (self.h, self.c))
+
+        pred = self.classifier(output)
+        pred = pred.view(-1, self.vocabulary_size)
+        #pred = pred[-1, :, :]
+        return pred
+
